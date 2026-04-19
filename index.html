@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventario">
+<meta name="theme-color" content="#1565C0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Inventario Ricambi</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a1a;overscroll-behavior:none}
+:root{--blue:#1565C0;--blue-dark:#0D47A1;--green:#2E7D32;--green-bg:#E8F5E9;--orange:#E65100;--orange-bg:#FFF3E0;--red:#C62828;--red-bg:#FFEBEE;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.12)}
+
+/* HEADER */
+.header{background:var(--blue);color:#fff;padding:env(safe-area-inset-top,0) 0 0;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.header-top{display:flex;align-items:center;padding:12px 16px;gap:10px}
+.header-title{font-size:18px;font-weight:600;flex:1}
+.header-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0}
+.search-row{display:flex;align-items:center;padding:0 12px 10px;gap:8px}
+.search-input{flex:1;background:rgba(255,255,255,.2);border:none;border-radius:20px;padding:8px 14px;color:#fff;font-size:14px;outline:none}
+.search-input::placeholder{color:rgba(255,255,255,.6)}
+.scan-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;flex-shrink:0}
+
+/* TABS */
+.tabs{display:flex;background:var(--blue)}
+.tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:3px solid transparent;transition:.2s}
+.tab.active{color:#fff;border-bottom-color:#fff}
+
+/* FILTER CHIPS */
+.chips{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;scrollbar-width:none;background:#fff;border-bottom:1px solid #e0e0e0}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #ddd;background:#fff;color:#666;white-space:nowrap;transition:.15s}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip.ok{border-color:var(--green);color:var(--green)}
+.chip.ok.active{background:var(--green);color:#fff}
+.chip.warn{border-color:var(--orange);color:var(--orange)}
+.chip.warn.active{background:var(--orange);color:#fff}
+.chip.crit{border-color:var(--red);color:var(--red)}
+.chip.crit.active{background:var(--red);color:#fff}
+
+/* LIST */
+.list{padding:10px 10px 100px}
+.empty{text-align:center;color:#999;padding:60px 20px;font-size:15px}
+
+/* CARD */
+.card{background:#fff;border-radius:var(--radius);margin-bottom:8px;display:flex;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;transition:.15s}
+.card:active{transform:scale(.98)}
+.card-bar{width:5px;flex-shrink:0}
+.card-body{flex:1;padding:10px 12px;min-width:0}
+.card-code{font-size:11px;font-family:monospace;color:#888;margin-bottom:2px}
+.card-desc{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-pos{font-size:12px;color:#888;margin-top:1px}
+.card-badge{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.card-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px;gap:6px}
+.qty-text{font-size:16px;font-weight:700;text-align:center}
+.qty-controls{display:flex;gap:5px;align-items:center}
+.qty-btn{width:30px;height:30px;border-radius:50%;border:1.5px solid #ddd;background:#f5f5f5;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500;line-height:1}
+.qty-btn:active{background:#e0e0e0}
+.del-btn{width:28px;height:28px;border-radius:50%;border:none;background:none;color:#e53935;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0));right:16px;background:var(--blue);color:#fff;border:none;border-radius:28px;padding:14px 20px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(21,101,192,.4);cursor:pointer;display:flex;align-items:center;gap:8px;z-index:50}
+.fab:active{transform:scale(.96)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.25s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));width:100%;max-width:500px;transform:translateY(100%);transition:.3s cubic-bezier(.4,0,.2,1);max-height:90vh;overflow-y:auto}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:5px}
+.field input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;transition:.15s;background:#fff}
+.field input:focus{border-color:var(--blue)}
+.field-row{display:flex;gap:10px}
+.field-row .field{flex:1}
+.modal-btns{display:flex;gap:10px;margin-top:6px}
+.btn{flex:1;padding:13px;border-radius:12px;font-size:15px;font-weight:600;border:none;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn-cancel{background:#f0f0f0;color:#333}
+.btn-ok{background:var(--blue);color:#fff}
+.btn-danger{background:#ffebee;color:var(--red)}
+
+/* SCANNER */
+.scanner-bg{position:fixed;inset:0;background:#000;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.scanner-video{width:100%;height:100%;object-fit:cover;position:absolute}
+.scanner-overlay{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;width:100%}
+.scanner-frame{width:260px;height:160px;border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.6)}
+.scanner-hint{color:#fff;font-size:15px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.scanner-close{background:var(--blue);color:#fff;border:none;border-radius:24px;padding:14px 32px;font-size:16px;font-weight:600;cursor:pointer;margin-top:20px}
+
+/* RENAME toast */
+.toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:500;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* CSV row */
+.csv-row{display:flex;gap:8px;padding:10px 12px;background:#fff;border-top:1px solid #eee}
+.csv-btn{flex:1;padding:10px;border:1.5px solid #ddd;border-radius:10px;background:#f9f9f9;cursor:pointer;font-size:13px;font-weight:500;color:#333;text-align:center}
+.csv-btn:active{background:#eee}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <span class="header-title">Inventario Ricambi</span>
+    <button class="header-btn" onclick="showMenu()" title="Menu">⋮</button>
+  </div>
+  <div class="search-row">
+    <input class="search-input" id="searchInput" placeholder="Cerca per codice o descrizione..." oninput="renderList()">
+    <button class="scan-btn" onclick="openScanner()" title="Scanner">⊡</button>
+  </div>
+  <div class="tabs" id="tabsEl"></div>
+</div>
+
+<div class="chips" id="chipsEl"></div>
+<div class="list" id="listEl"></div>
+<div class="csv-row">
+  <button class="csv-btn" onclick="exportCsv()">↑ Esporta CSV</button>
+  <button class="csv-btn" onclick="importCsv()">↓ Importa CSV</button>
+  <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="handleImport(event)">
+</div>
+<button class="fab" onclick="showAddDialog()"><span style="font-size:20px">+</span> Aggiungi voce</button>
+
+<!-- PART DIALOG -->
+<div class="modal-bg" id="partModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="partModalTitle">Aggiungi voce</div>
+    <div id="partModalFields"></div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal('partModal')">Annulla</button>
+      <button class="btn btn-ok" onclick="savePart()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- QTY DIALOG -->
+<div class="modal-bg" id="qtyModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="qtyModalTitle"></div>
+    <div id="qtyModalInfo" style="background:#f5f5f5;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-around;text-align:center"></div>
+    <div class="field-row">
+      <div class="field"><label>Unità da aggiungere</label><input type="number" id="qtyAdd" min="0" placeholder="0" inputmode="numeric"></div>
+      <div class="field"><label>Unità da rimuovere</label><input type="number" id="qtyRemove" min="0" placeholder="0" inputmode="numeric"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal('qtyModal')">Annulla</button>
+      <button class="btn btn-ok" onclick="confirmQty()">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOUND DIALOG -->
+<div class="modal-bg" id="foundModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Pezzo già in inventario</div>
+    <div id="foundInfo" style="background:#f5f5f5;border-radius:10px;padding:14px;margin-bottom:16px;line-height:1.8;font-size:14px"></div>
+    <div class="modal-btns" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-cancel" style="flex:none;min-width:80px" onclick="closeModal('foundModal')">Chiudi</button>
+      <button class="btn btn-cancel" style="flex:1" onclick="foundEdit()">Modifica scheda</button>
+      <button class="btn btn-ok" style="flex:1" onclick="foundQty()">Vai alla scheda</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOT FOUND DIALOG -->
+<div class="modal-bg" id="notFoundModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Codice non trovato</div>
+    <div id="notFoundInfo" style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.7"></div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal('notFoundModal')">Annulla</button>
+      <button class="btn btn-ok" onclick="addScanned()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME DIALOG -->
+<div class="modal-bg" id="renameModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Rinomina gruppo</div>
+    <div class="field"><label>Nuovo nome</label><input type="text" id="renameInput" placeholder="Nome gruppo"></div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal('renameModal')">Annulla</button>
+      <button class="btn btn-ok" onclick="saveRename()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Elimina ricambio</div>
+    <div id="deleteInfo" style="font-size:14px;color:#555;margin-bottom:16px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal('deleteModal')">Annulla</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER -->
+<div id="scannerEl" style="display:none" class="scanner-bg">
+  <video id="scanVideo" class="scanner-video" autoplay playsinline muted></video>
+  <div class="scanner-overlay">
+    <div class="scanner-frame"></div>
+    <div class="scanner-hint">Inquadra il codice a barre</div>
+    <button class="scanner-close" onclick="closeScanner()">Annulla</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+// ── DATABASE (IndexedDB) ─────────────────────────────────
+const DB_NAME = 'InventarioDB', DB_VER = 1;
+let db;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('groups')) {
+        const gs = d.createObjectStore('groups', {keyPath:'id', autoIncrement:true});
+      }
+      if (!d.objectStoreNames.contains('parts')) {
+        const ps = d.createObjectStore('parts', {keyPath:'id', autoIncrement:true});
+        ps.createIndex('groupId', 'groupId');
+        ps.createIndex('code', 'code');
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function tx(store, mode='readonly') {
+  return db.transaction(store, mode).objectStore(store);
+}
+
+function getAll(store, index, val) {
+  return new Promise(res => {
+    const s = tx(store);
+    const req = index ? s.index(index).getAll(val) : s.getAll();
+    req.onsuccess = () => res(req.result);
+  });
+}
+
+function put(store, obj) {
+  return new Promise(res => {
+    const req = tx(store,'readwrite').put(obj);
+    req.onsuccess = () => res(req.result);
+  });
+}
+
+function del(store, id) {
+  return new Promise(res => {
+    const req = tx(store,'readwrite').delete(id);
+    req.onsuccess = () => res();
+  });
+}
+
+function getByIndex(store, index, val) {
+  return new Promise(res => {
+    const req = tx(store).index(index).get(val);
+    req.onsuccess = () => res(req.result);
+  });
+}
+
+// ── STATE ────────────────────────────────────────────────
+let groups = [], parts = [], currentGroupIdx = 0, filterMode = 'all', searchQ = '';
+let editingPartId = null, deletingPartId = null, scannedCode = null, foundPart = null;
+let longPressTimer = null;
+
+// ── STATUS LOGIC ─────────────────────────────────────────
+function getStatus(cur, min) {
+  if (min === 0) return 'ok';
+  const t = Math.floor(min / 2);
+  if (cur >= min) return 'ok';
+  if (cur >= t) return 'warning';
+  return 'critical';
+}
+const STATUS = {
+  ok: {label:'OK', color:'#2E7D32', bg:'#E8F5E9'},
+  warning: {label:'Attenzione', color:'#E65100', bg:'#FFF3E0'},
+  critical: {label:'Insufficiente', color:'#C62828', bg:'#FFEBEE'}
+};
+
+// ── INIT ─────────────────────────────────────────────────
+async function init() {
+  await openDB();
+  groups = await getAll('groups');
+  if (groups.length === 0) {
+    await put('groups', {name:'Furgone', type:'furgone'});
+    await put('groups', {name:'Zaino', type:'zaino'});
+    groups = await getAll('groups');
+  }
+  parts = await getAll('parts');
+  renderTabs();
+  renderChips();
+  renderList();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js');
+}
+
+// ── RENDER TABS ──────────────────────────────────────────
+function renderTabs() {
+  const el = document.getElementById('tabsEl');
+  el.innerHTML = groups.map((g, i) => `
+    <div class="tab ${i===currentGroupIdx?'active':''}"
+      onclick="switchTab(${i})"
+      onmousedown="startLongPress(${i})"
+      onmouseup="cancelLongPress()"
+      ontouchstart="startLongPress(${i})"
+      ontouchend="cancelLongPress()"
+    >${g.name}</div>
+  `).join('');
+}
+
+function startLongPress(i) {
+  longPressTimer = setTimeout(() => showRenameDialog(i), 700);
+}
+function cancelLongPress() { clearTimeout(longPressTimer); }
+
+function switchTab(i) {
+  currentGroupIdx = i;
+  filterMode = 'all';
+  document.getElementById('searchInput').value = '';
+  searchQ = '';
+  renderTabs();
+  renderChips();
+  renderList();
+}
+
+// ── RENDER CHIPS ─────────────────────────────────────────
+function renderChips() {
+  const gParts = parts.filter(p => p.groupId === groups[currentGroupIdx]?.id);
+  let ok=0, warn=0, crit=0;
+  gParts.forEach(p => {
+    const s = getStatus(p.currentQty, p.minimumQty);
+    if (s==='ok') ok++;
+    else if (s==='warning') warn++;
+    else crit++;
+  });
+  const total = gParts.length;
+  document.getElementById('chipsEl').innerHTML = `
+    <div class="chip ${filterMode==='all'?'active':''}" onclick="setFilter('all')">Tutti (${total})</div>
+    <div class="chip ok ${filterMode==='ok'?'active':''}" onclick="setFilter('ok')">OK (${ok})</div>
+    <div class="chip warn ${filterMode==='warning'?'active':''}" onclick="setFilter('warning')">Attenzione (${warn})</div>
+    <div class="chip crit ${filterMode==='critical'?'active':''}" onclick="setFilter('critical')">Insufficienti (${crit})</div>
+  `;
+}
+
+function setFilter(f) { filterMode = f; renderChips(); renderList(); }
+
+// ── RENDER LIST ──────────────────────────────────────────
+function renderList() {
+  searchQ = document.getElementById('searchInput').value.toLowerCase();
+  const g = groups[currentGroupIdx];
+  if (!g) return;
+  const isFurgone = g.type === 'furgone';
+
+  let filtered = parts.filter(p => {
+    if (p.groupId !== g.id) return false;
+    if (searchQ && !p.description.toLowerCase().includes(searchQ) && !(p.code||'').toLowerCase().includes(searchQ)) return false;
+    if (filterMode !== 'all' && getStatus(p.currentQty, p.minimumQty) !== filterMode) return false;
+    return true;
+  });
+
+  const el = document.getElementById('listEl');
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty">Nessuna voce trovata</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(p => {
+    const s = getStatus(p.currentQty, p.minimumQty);
+    const st = STATUS[s];
+    return `
+    <div class="card" onclick="openEditDialog(${p.id})">
+      <div class="card-bar" style="background:${st.color}"></div>
+      <div class="card-body">
+        ${isFurgone && p.code ? `<div class="card-code">${p.code}</div>` : ''}
+        <div class="card-desc">${p.description}</div>
+        ${isFurgone && p.position ? `<div class="card-pos">${p.position}</div>` : ''}
+        <div class="card-badge" style="background:${st.bg};color:${st.color}">${st.label}</div>
+      </div>
+      <div class="card-right">
+        <div class="qty-text" style="color:${st.color}">${p.currentQty}<span style="font-size:11px;color:#aaa">/${p.minimumQty}</span></div>
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="event.stopPropagation();changeQty(${p.id},-1)">−</button>
+          <button class="qty-btn" onclick="event.stopPropagation();changeQty(${p.id},1)">+</button>
+          <button class="del-btn" onclick="event.stopPropagation();openDeleteDialog(${p.id})">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── QTY CHANGE ───────────────────────────────────────────
+async function changeQty(id, delta) {
+  const p = parts.find(x => x.id === id);
+  if (!p) return;
+  p.currentQty = Math.max(0, p.currentQty + delta);
+  await put('parts', p);
+  renderChips();
+  renderList();
+}
+
+// ── ADD/EDIT DIALOG ──────────────────────────────────────
+function buildPartFields(isFurgone, p = {}) {
+  return `
+    ${isFurgone ? `<div class="field"><label>Codice</label><input type="text" id="f_code" value="${p.code||''}" placeholder="es. FR-001"></div>` : ''}
+    <div class="field"><label>Descrizione *</label><input type="text" id="f_desc" value="${p.description||''}" placeholder="Descrizione ricambio"></div>
+    ${isFurgone ? `<div class="field"><label>Posizione</label><input type="text" id="f_pos" value="${p.position||''}" placeholder="es. Scaffale A1"></div>` : ''}
+    <div class="field-row">
+      <div class="field"><label>Qtà minima</label><input type="number" id="f_min" value="${p.minimumQty??1}" min="0" inputmode="numeric"></div>
+      <div class="field"><label>Qtà attuale</label><input type="number" id="f_act" value="${p.currentQty??0}" min="0" inputmode="numeric"></div>
+    </div>
+  `;
+}
+
+function showAddDialog(prefillCode = '') {
+  const g = groups[currentGroupIdx];
+  editingPartId = null;
+  document.getElementById('partModalTitle').textContent = `Aggiungi voce — ${g.name}`;
+  document.getElementById('partModalFields').innerHTML = buildPartFields(g.type==='furgone', {code: prefillCode});
+  openModal('partModal');
+  setTimeout(() => document.getElementById('f_desc')?.focus(), 350);
+}
+
+function openEditDialog(id) {
+  const p = parts.find(x => x.id === id);
+  if (!p) return;
+  const g = groups.find(x => x.id === p.groupId);
+  editingPartId = id;
+  document.getElementById('partModalTitle').textContent = 'Modifica voce';
+  document.getElementById('partModalFields').innerHTML = buildPartFields(g?.type==='furgone', p);
+  openModal('partModal');
+}
+
+async function savePart() {
+  const desc = document.getElementById('f_desc')?.value.trim();
+  if (!desc) { showToast('La descrizione è obbligatoria'); return; }
+  const g = groups[currentGroupIdx];
+  const isFurgone = g.type === 'furgone';
+  const obj = {
+    groupId: g.id,
+    groupType: g.type,
+    code: isFurgone ? (document.getElementById('f_code')?.value.trim()||'') : '',
+    description: desc,
+    position: isFurgone ? (document.getElementById('f_pos')?.value.trim()||'') : '',
+    minimumQty: parseInt(document.getElementById('f_min')?.value)||1,
+    currentQty: parseInt(document.getElementById('f_act')?.value)||0,
+  };
+  if (editingPartId) obj.id = editingPartId;
+  await put('parts', obj);
+  parts = await getAll('parts');
+  closeModal('partModal');
+  renderChips();
+  renderList();
+}
+
+// ── DELETE ────────────────────────────────────────────────
+function openDeleteDialog(id) {
+  const p = parts.find(x => x.id === id);
+  deletingPartId = id;
+  document.getElementById('deleteInfo').textContent = `Eliminare "${p?.description}"?`;
+  openModal('deleteModal');
+}
+
+async function confirmDelete() {
+  await del('parts', deletingPartId);
+  parts = await getAll('parts');
+  closeModal('deleteModal');
+  renderChips();
+  renderList();
+}
+
+// ── RENAME GROUP ─────────────────────────────────────────
+let renamingGroupIdx = -1;
+function showRenameDialog(i) {
+  renamingGroupIdx = i;
+  document.getElementById('renameInput').value = groups[i].name;
+  openModal('renameModal');
+  setTimeout(() => document.getElementById('renameInput').focus(), 350);
+}
+
+async function saveRename() {
+  const name = document.getElementById('renameInput').value.trim();
+  if (!name) return;
+  groups[renamingGroupIdx].name = name;
+  await put('groups', groups[renamingGroupIdx]);
+  closeModal('renameModal');
+  renderTabs();
+}
+
+// ── SCANNER ───────────────────────────────────────────────
+let scanStream = null, scanInterval = null;
+
+async function openScanner() {
+  const el = document.getElementById('scannerEl');
+  el.style.display = 'flex';
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+    });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = scanStream;
+    await video.play();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    scanInterval = setInterval(() => {
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+      if (code && code.data) {
+        clearInterval(scanInterval);
+        closeScanner();
+        handleScannedCode(code.data);
+      }
+    }, 200);
+  } catch(e) {
+    el.style.display = 'none';
+    showToast('Fotocamera non disponibile');
+  }
+}
+
+function closeScanner() {
+  clearInterval(scanInterval);
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  document.getElementById('scannerEl').style.display = 'none';
+}
+
+async function handleScannedCode(code) {
+  const found = parts.find(p => p.code === code.trim());
+  if (found) {
+    foundPart = found;
+    const s = getStatus(found.currentQty, found.minimumQty);
+    document.getElementById('foundInfo').innerHTML = `
+      <b>${found.description}</b><br>
+      ${found.position ? `Posizione: ${found.position}<br>` : ''}
+      Quantità attuale: <b>${found.currentQty}</b><br>
+      Quantità minima: <b>${found.minimumQty}</b><br>
+      Stato: <span style="color:${STATUS[s].color};font-weight:600">${STATUS[s].label}</span>
+    `;
+    openModal('foundModal');
+  } else {
+    scannedCode = code;
+    document.getElementById('notFoundInfo').innerHTML =
+      `Il codice <b>"${code}"</b> non è presente in inventario.<br><br>Vuoi aggiungere questo ricambio?`;
+    openModal('notFoundModal');
+  }
+}
+
+function foundEdit() { closeModal('foundModal'); openEditDialog(foundPart.id); }
+function foundQty() {
+  closeModal('foundModal');
+  openQtyDialog(foundPart);
+}
+function addScanned() { closeModal('notFoundModal'); showAddDialog(scannedCode||''); }
+
+// ── QTY DIALOG ────────────────────────────────────────────
+let qtyPartId = null;
+function openQtyDialog(p) {
+  qtyPartId = p.id;
+  document.getElementById('qtyModalTitle').textContent = p.description;
+  document.getElementById('qtyModalInfo').innerHTML = `
+    <div><div style="font-size:22px;font-weight:700">${p.currentQty}</div><div style="font-size:12px;color:#888">Attuale</div></div>
+    <div style="font-size:22px;color:#ccc">/</div>
+    <div><div style="font-size:22px;font-weight:700">${p.minimumQty}</div><div style="font-size:12px;color:#888">Minima</div></div>
+  `;
+  document.getElementById('qtyAdd').value = '';
+  document.getElementById('qtyRemove').value = '';
+  openModal('qtyModal');
+  setTimeout(() => document.getElementById('qtyAdd').focus(), 350);
+}
+
+async function confirmQty() {
+  const add = parseInt(document.getElementById('qtyAdd').value)||0;
+  const rem = parseInt(document.getElementById('qtyRemove').value)||0;
+  const delta = add - rem;
+  if (delta !== 0) {
+    const p = parts.find(x => x.id === qtyPartId);
+    if (p) {
+      p.currentQty = Math.max(0, p.currentQty + delta);
+      await put('parts', p);
+      parts = await getAll('parts');
+      showToast(`Quantità aggiornata: ${p.currentQty}`);
+      renderChips();
+      renderList();
+    }
+  }
+  closeModal('qtyModal');
+}
+
+// ── CSV ───────────────────────────────────────────────────
+function escapeCsv(v) {
+  const s = String(v||'');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+}
+
+async function exportCsv() {
+  const gs = await getAll('groups');
+  const ps = await getAll('parts');
+  const gMap = Object.fromEntries(gs.map(g => [g.id, g]));
+  const header = 'gruppo_tipo,gruppo_nome,codice,descrizione,posizione,qty_minima,qty_attuale';
+  const rows = ps.map(p => [
+    p.groupType, gMap[p.groupId]?.name||'',
+    escapeCsv(p.code), escapeCsv(p.description), escapeCsv(p.position),
+    p.minimumQty, p.currentQty
+  ].join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'inventario_ricambi.csv';
+  a.click();
+  showToast('CSV esportato');
+}
+
+function importCsv() { document.getElementById('csvFile').click(); }
+
+async function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const lines = text.split(/\r?\n/);
+  const gs = await getAll('groups');
+  const gByType = Object.fromEntries(gs.map(g => [g.type, g]));
+  let count = 0, errors = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].replace(/^\uFEFF/, '').trim();
+    if (!line) continue;
+    const cols = parseCsvLine(line);
+    if (cols.length < 7) { errors++; continue; }
+    const g = gByType[cols[0].trim().toLowerCase()];
+    if (!g) { errors++; continue; }
+    await put('parts', {
+      groupId: g.id, groupType: g.type,
+      code: cols[2].trim(), description: cols[3].trim(),
+      position: cols[4].trim(),
+      minimumQty: parseInt(cols[5])||0,
+      currentQty: parseInt(cols[6])||0
+    });
+    count++;
+  }
+  parts = await getAll('parts');
+  renderChips(); renderList();
+  showToast(errors ? `Importati ${count}, ${errors} errori` : `Importati ${count} ricambi`);
+  e.target.value = '';
+}
+
+function parseCsvLine(line) {
+  const res = []; let inQ = false, cur = '';
+  for (const ch of line) {
+    if (ch === '"') inQ = !inQ;
+    else if (ch === ',' && !inQ) { res.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  res.push(cur);
+  return res;
+}
+
+// ── MENU ──────────────────────────────────────────────────
+function showMenu() { showToast('Tieni premuto un tab per rinominare il gruppo'); }
+
+// ── MODAL HELPERS ─────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on backdrop click
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// ── TOAST ─────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
